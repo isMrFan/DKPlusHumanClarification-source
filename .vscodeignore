@@ -1,0 +1,24 @@
+# Exclude development-only files from VSIX packaging
+.history/**
+node_modules/**
+src/**
+**/*.ts
+**/*.map
+
+# Exclude legacy assets (previously vendored from upstream)
+out/resources/**
+out/configs/**
+
+# Tooling / misc
+.vscode/**
+.git/**
+.gitignore
+.vscodeignore
+package-lock.json
+tsconfig.json
+
+# Local artifacts
+*.vsix
+
+# Optional docs/samples (not required at runtime)
+# sample-prompts/**

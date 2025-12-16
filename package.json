@@ -1,0 +1,310 @@
+{
+  "name": "dkplushumanclarification",
+  "displayName": "dkplushumanclarification",
+  "description": "Copilot Chat tools (clarification/contact/feedback + report read/write) + local prompt reader commands.",
+  "icon": "resources/icon.png",
+  "version": "0.4.0",
+  "publisher": "dkplus",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/isMrFan/DKPlusHumanClarification-source"
+  },
+  "homepage": "https://github.com/isMrFan",
+  "bugs": {
+    "url": "https://github.com/isMrFan/DKPlusHumanClarification-source/issues"
+  },
+  "engines": {
+    "vscode": "^1.106.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onChatParticipant:dkplus",
+    "onChatParticipant:dkplus.dkplushumanclarification.dkplus"
+  ],
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "dkplus.dkplushumanclarification.dkplus",
+        "name": "dkplus",
+        "fullName": "dkPlus",
+        "description": "Invoke dkPlus tools (feedback/clarify/contact/report/AI ask).",
+        "isSticky": true
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "dkplus_ask",
+        "displayName": "AI dkPlus提问",
+        "modelDescription": "Ask an AI chat model a question and return the answer.",
+        "userDescription": "允许代理向 AI 提问并获取回答（会触发用户授权/确认）。",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "dkplusAsk",
+        "icon": "$(sparkle)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "prompt": {
+              "type": "string",
+              "description": "The question/prompt to ask the AI model"
+            },
+            "context": {
+              "type": "string",
+              "description": "Optional extra context appended to the prompt"
+            },
+            "placeholder": {
+              "type": "string",
+              "description": "Placeholder text for the user confirmation input"
+            }
+          },
+          "required": [
+            "prompt"
+          ]
+        }
+      },
+      {
+        "name": "request_user_clarification",
+        "displayName": "澄清",
+        "modelDescription": "**User clarification**: Ask the human developer for input or guidance. Give your question context in the chat, then use human intelligence to request input from the human.",
+        "userDescription": "允许代理请求用户提供澄清或指导。",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "requestUserClarification",
+        "icon": "$(comment-discussion)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "question": {
+              "type": "string",
+              "description": "The question to ask the user"
+            },
+            "context": {
+              "type": "string",
+              "description": "Optional context information to help the user understand the question"
+            },
+            "placeholder": {
+              "type": "string",
+              "description": "Placeholder text for the input field"
+            }
+          },
+          "required": [
+            "question"
+          ]
+        }
+      },
+      {
+        "name": "request_contact_user",
+        "displayName": "联系用户",
+        "modelDescription": "**Contact user**: Proactively contact the human. Provide enough context so the human understands why contact is needed.",
+        "userDescription": "允许代理在紧急或阻塞情况下直接联系用户。",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "requestContactUser",
+        "icon": "$(bell)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "question": {
+              "type": "string",
+              "description": "The urgent message or question to communicate to the user"
+            },
+            "context": {
+              "type": "string",
+              "description": "Context explaining why immediate contact is needed"
+            },
+            "placeholder": {
+              "type": "string",
+              "description": "Placeholder text for the input field"
+            }
+          },
+          "required": [
+            "question"
+          ]
+        }
+      },
+      {
+        "name": "request_user_feedback",
+        "displayName": "反馈",
+        "modelDescription": "**User feedback**: Ask the human for their opinion, rating, or suggestions about the process or result. Provide clear context so the human knows what aspect to evaluate.",
+        "userDescription": "允许代理在任务完成后征求用户的意见和建议。",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "requestUserFeedback",
+        "icon": "$(feedback)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "question": {
+              "type": "string",
+              "description": "The feedback question to ask the user"
+            },
+            "context": {
+              "type": "string",
+              "description": "Summary of what was completed, to help user provide relevant feedback"
+            },
+            "placeholder": {
+              "type": "string",
+              "description": "Placeholder text for the input field"
+            }
+          },
+          "required": [
+            "question"
+          ]
+        }
+      },
+      {
+        "name": "read_report",
+        "displayName": "读取报告",
+        "modelDescription": "**Read report**: Read a previously saved report file from the workspace. Provide the file path returned by write_report.",
+        "userDescription": "允许代理读取之前保存的报告文件。",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "readReport",
+        "icon": "$(file-text)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "The file path to read (relative to workspace root or absolute path)"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      {
+        "name": "write_report",
+        "displayName": "写入报告",
+        "modelDescription": "**Write report**: Write content to a new report file in .hc directory. Returns JSON with file path and ID. Do NOT use this tool unless explicitly requested by the user. After calling this tool, output the JSON result directly and end the conversation immediately. Do NOT call request_user_feedback, request_contact_user, or request_user_clarification after using this tool.",
+        "userDescription": "允许代理直接写入报告文件到 .hc 目录。",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "writeReport",
+        "icon": "$(save)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "description": "The content to write to the report file"
+            },
+            "title": {
+              "type": "string",
+              "description": "Optional title for the report (used in filename if provided)"
+            }
+          },
+          "required": [
+            "content"
+          ]
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Human Clarification",
+      "properties": {
+        "humanClarification.templates.clarification": {
+          "type": "array",
+          "default": [],
+          "description": "澄清请求的自定义回复模板。每个模板应包含 'name' 和 'template' 字段。使用 {{INPUT_CONTENT}} 作为占位符。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "模板名称"
+              },
+              "template": {
+                "type": "string",
+                "description": "模板内容(使用 {{INPUT_CONTENT}} 作为占位符)"
+              }
+            },
+            "required": [
+              "name",
+              "template"
+            ]
+          }
+        },
+        "humanClarification.templates.contact": {
+          "type": "array",
+          "default": [],
+          "description": "联系用户请求的自定义回复模板。每个模板应包含 'name' 和 'template' 字段。使用 {{INPUT_CONTENT}} 作为占位符。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "模板名称"
+              },
+              "template": {
+                "type": "string",
+                "description": "模板内容(使用 {{INPUT_CONTENT}} 作为占位符)"
+              }
+            },
+            "required": [
+              "name",
+              "template"
+            ]
+          }
+        },
+        "humanClarification.templates.feedback": {
+          "type": "array",
+          "default": [],
+          "description": "用户反馈的自定义回复模板。每个模板应包含 'name' 和 'template' 字段。使用 {{INPUT_CONTENT}} 作为占位符。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "模板名称"
+              },
+              "template": {
+                "type": "string",
+                "description": "模板内容(使用 {{INPUT_CONTENT}} 作为占位符)"
+              }
+            },
+            "required": [
+              "name",
+              "template"
+            ]
+          }
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "humanClarification.test.writeReport",
+        "title": "写入报告（调试）",
+        "category": "Human Clarification"
+      },
+      {
+        "command": "humanClarification.test.feedback",
+        "title": "反馈 Webview（调试）",
+        "category": "Human Clarification"
+      },
+      {
+        "command": "humanClarification.getLocalPrompts",
+        "title": "Get Local Copilot Prompt Files",
+        "category": "DKPlusHumanClarification"
+      },
+      {
+        "command": "humanClarification.readLocalFile",
+        "title": "Read Local File",
+        "category": "DKPlusHumanClarification"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "package": "npx --yes @vscode/vsce package --no-rewrite-relative-links --allow-missing-repository",
+    "package:inc": "npm version minor --no-git-tag-version && npm run package",
+    "package:test": "npm version minor --no-git-tag-version && npx --yes @vscode/vsce package --no-git-tag-version --no-rewrite-relative-links --allow-missing-repository",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^2.27.0"
+  },
+  "license": "SEE LICENSE IN LICENSE"
+}
