@@ -508,6 +508,56 @@ async function readReport(context: vscode.ExtensionContext, input: ReadReportInp
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel('Human Clarification');
 
+  // Try to wire up upstream Human Clarification 1.1.8 features (webview + LM tools + HTTP server)
+  let upstreamToolsRegistered = false;
+  try {
+    const hcRoot = path.join(context.extensionPath, 'justwe9517.human-clarification-1.1.8');
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const webviewModule = require(path.join(hcRoot, 'out', 'webviewManager.js')) as any;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const toolsModule = require(path.join(hcRoot, 'out', 'tools', 'toolRegistry.js')) as any;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const serverModule = require(path.join(hcRoot, 'out', 'server', 'httpServer.js')) as any;
+
+    const ClarificationWebviewManager = webviewModule?.ClarificationWebviewManager;
+    const ToolRegistry = toolsModule?.ToolRegistry;
+    const CopilotHttpServer = serverModule?.CopilotHttpServer;
+
+    if (ClarificationWebviewManager && ToolRegistry) {
+      const hcContextLike = { extensionPath: hcRoot, subscriptions: context.subscriptions };
+      const webviewManager = new ClarificationWebviewManager(hcContextLike);
+      const toolRegistry = new ToolRegistry(context, {
+        webviewManager,
+        outputChannel: output,
+      });
+      toolRegistry.registerAll();
+      upstreamToolsRegistered = true;
+      context.subscriptions.push({ dispose: () => toolRegistry.dispose() });
+    }
+
+    if (CopilotHttpServer) {
+      const httpServer = new CopilotHttpServer(output);
+      context.subscriptions.push(
+        vscode.commands.registerCommand('humanClarification.server.start', async () => {
+          await httpServer.start();
+        }),
+        vscode.commands.registerCommand('humanClarification.server.stop', async () => {
+          await httpServer.stop();
+        }),
+        vscode.commands.registerCommand('humanClarification.server.toggle', async () => {
+          await httpServer.toggle();
+        }),
+        { dispose: () => httpServer.dispose() }
+      );
+
+      // Fire and forget; no need to await here.
+      void httpServer.autoStartIfConfigured();
+    }
+  } catch (err) {
+    output.appendLine('Failed to initialize upstream Human Clarification features: ' + String(err));
+  }
+
   // Chat participant so users can type: @dkplus #tool:... to actually invoke tools.
   const participant = vscode.chat.createChatParticipant('dkplus.dkplushumanclarification.dkplus', async (request, _ctx, response, token) => {
     try {
@@ -559,30 +609,12 @@ export function activate(context: vscode.ExtensionContext) {
   participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'icon.png');
   context.subscriptions.push(participant);
 
-  context.subscriptions.push(
+  const disposables: vscode.Disposable[] = [
     vscode.lm.registerTool<DkPlusAskInput>('dkplus_ask', {
       invoke: async (options, token) => {
         const result = await dkplusAskAi(context, options.input, token);
         output.appendLine('dkplus_ask invoked');
         return result;
-      },
-    }),
-    vscode.lm.registerTool<ToolInputCommon>('request_user_clarification', {
-      invoke: async (options, _token) => {
-        const answer = await askUserFreeTextWebview(options.input, 'clarification');
-        return asTextResult(answer);
-      },
-    }),
-    vscode.lm.registerTool<ToolInputCommon>('request_contact_user', {
-      invoke: async (options, _token) => {
-        const answer = await askUserFreeTextWebview(options.input, 'contact');
-        return asTextResult(answer);
-      },
-    }),
-    vscode.lm.registerTool<ToolInputCommon>('request_user_feedback', {
-      invoke: async (options, _token) => {
-        const answer = await askUserFreeTextWebview(options.input, 'feedback');
-        return asTextResult(answer);
       },
     }),
     vscode.lm.registerTool<ReadReportInput>('read_report', {
@@ -612,8 +644,35 @@ export function activate(context: vscode.ExtensionContext) {
       output.appendLine(`Feedback: ${feedback}`);
       vscode.window.showInformationMessage('收到反馈');
     }),
-    output
-  );
+    output,
+  ];
+
+  // If upstream tools failed to register (e.g. missing folder), fall back to
+  // the built-in simple webview implementation for clarification/contact/feedback.
+  if (!upstreamToolsRegistered) {
+    disposables.push(
+      vscode.lm.registerTool<ToolInputCommon>('request_user_clarification', {
+        invoke: async (options, _token) => {
+          const answer = await askUserFreeTextWebview(options.input, 'clarification');
+          return asTextResult(answer);
+        },
+      }),
+      vscode.lm.registerTool<ToolInputCommon>('request_contact_user', {
+        invoke: async (options, _token) => {
+          const answer = await askUserFreeTextWebview(options.input, 'contact');
+          return asTextResult(answer);
+        },
+      }),
+      vscode.lm.registerTool<ToolInputCommon>('request_user_feedback', {
+        invoke: async (options, _token) => {
+          const answer = await askUserFreeTextWebview(options.input, 'feedback');
+          return asTextResult(answer);
+        },
+      })
+    );
+  }
+
+  context.subscriptions.push(...disposables);
 }
 
 export function deactivate() { }

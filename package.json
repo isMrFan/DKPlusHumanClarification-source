@@ -3,7 +3,7 @@
   "displayName": "dkplushumanclarification",
   "description": "Copilot Chat tools (clarification/contact/feedback + report read/write) + local prompt reader commands.",
   "icon": "resources/icon.png",
-  "version": "0.4.0",
+  "version": "0.7.0",
   "publisher": "dkplus",
   "repository": {
     "type": "git",
@@ -14,7 +14,8 @@
     "url": "https://github.com/isMrFan/DKPlusHumanClarification-source/issues"
   },
   "engines": {
-    "vscode": "^1.106.0"
+    "vscode": "^1.106.0",
+    "node": "20.19.6"
   },
   "categories": [
     "Other"
@@ -202,6 +203,28 @@
     "configuration": {
       "title": "Human Clarification",
       "properties": {
+        "humanClarification.templates.global": {
+          "type": "array",
+          "default": [],
+          "description": "通用的自定义回复模板。会在澄清、联系用户、反馈中同时显示。每个模板应包含 'name' 和 'template' 字段。使用 {{INPUT_CONTENT}} 作为占位符。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "模板名称"
+              },
+              "template": {
+                "type": "string",
+                "description": "模板内容(使用 {{INPUT_CONTENT}} 作为占位符)"
+              }
+            },
+            "required": [
+              "name",
+              "template"
+            ]
+          }
+        },
         "humanClarification.templates.clarification": {
           "type": "array",
           "default": [],
@@ -267,6 +290,49 @@
               "template"
             ]
           }
+        },
+        "humanClarification.webview.viewColumn": {
+          "type": "string",
+          "enum": [
+            "active",
+            "beside"
+          ],
+          "default": "active",
+          "enumDescriptions": [
+            "在当前活动的编辑器组中打开 (Active)",
+            "在当前编辑器旁边新建分组打开 (Beside)"
+          ],
+          "description": "控制 Webview 面板的打开位置"
+        },
+        "humanClarification.webview.appendAttachmentContent": {
+          "type": "boolean",
+          "default": true,
+          "description": "将通过 # 附加的工作区文件内容附加到提示词中（关闭后仅附加文件路径/标识，不包含文件内容）"
+        },
+        "humanClarification.server.port": {
+          "type": "number",
+          "default": 6789,
+          "description": "HTTP 服务器端口号"
+        },
+        "humanClarification.server.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "HTTP 服务器绑定地址"
+        },
+        "humanClarification.server.bearerToken": {
+          "type": "string",
+          "default": "",
+          "description": "HTTP 服务器认证令牌（Bearer Token）。留空则无需认证。"
+        },
+        "humanClarification.server.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否在扩展激活时自动启动 HTTP API 服务器"
+        },
+        "humanClarification.server.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否在状态栏显示 LM 服务状态"
         }
       }
     },
@@ -279,6 +345,21 @@
       {
         "command": "humanClarification.test.feedback",
         "title": "反馈 Webview（调试）",
+        "category": "Human Clarification"
+      },
+      {
+        "command": "humanClarification.server.start",
+        "title": "启动 API 服务器",
+        "category": "Human Clarification"
+      },
+      {
+        "command": "humanClarification.server.stop",
+        "title": "停止 API 服务器",
+        "category": "Human Clarification"
+      },
+      {
+        "command": "humanClarification.server.toggle",
+        "title": "切换 API 服务器",
         "category": "Human Clarification"
       },
       {

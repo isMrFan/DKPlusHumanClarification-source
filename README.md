@@ -6,7 +6,7 @@
 | --- | --- |
 | isMrFan | https://github.com/isMrFan |
 | bugfix2020 | https://github.com/bugfix2020 |
-
+| Real-Mabin | https://github.com/fanfanyiyun |
 ## 中文（使用说明）
 
 这个扩展提供两类能力：
@@ -49,6 +49,47 @@
 
 - `Get Local Copilot Prompt Files`：列出你本地 Prompt Files 目录
 - `Read Local File`：读取指定本地文件内容
+
+### 4) 使用内置 sample-prompts（推荐）
+
+扩展仓库自带了一些示例 Prompt 文件，帮你把 dkplus 工具“固化”为一个稳定的工作流程。
+
+#### 4.1 拷贝 sample-prompts 到用户目录
+
+1. 在本仓库中找到目录：`sample-prompts/`
+	- `Principle.chatmode.md`
+	- `runCode.prompt.md`
+	- `runCodeSubagent.prompt.md`
+2. 打开你的 VS Code 用户 Prompt 目录（Windows）：
+	- `C:\Users\\<你的用户名>\\AppData\\Roaming\\Code\\User\\prompts`
+	- 例如你本机是：`C:\Users\\10388\\AppData\\Roaming\\Code\\User\\prompts`
+3. 将 `sample-prompts/` 下这几个文件复制到上面的 `prompts` 目录中。
+
+> 说明：如果 `prompts` 目录不存在，可以手动创建一个。
+
+#### 4.2 这三个 Prompt 分别做什么
+
+- `Principle.chatmode.md`
+  - 定义了一整套「原则库」，并**强制要求**：
+	 - 澄清/联系/反馈/报告一律使用 `dkplus.dkplushumanclarification/...` 工具；
+	 - 会话结束前必须调用 `requestUserFeedback` 工具向你汇报。
+- `runCode.prompt.md`
+  - 启动一个“编码代理”，并要求它在需要时通过 `requestContactUser` 等工具联系你。
+  - frontmatter 里的 `tools:[...]` 已经锁定到你的扩展 ID。
+- `runCodeSubagent.prompt.md`
+  - 作为“编排/总控”Prompt：
+	 - 用 `#tool:runSubagent` 拉起子代理（编码代理）；
+	 - 要求子代理和编排器都通过 `dkplus.dkplushumanclarification/requestContactUser` 和你保持沟通。
+
+#### 4.3 在 Copilot Chat 里使用这些 Prompt
+
+1. 打开 Copilot Chat 面板。
+2. 在会话顶部（或新建会话时）选择你刚复制的 Prompt，例如：
+	- 选择 `Principle.chatmode` 作为 chatmode（规则/宪法）。
+	- 或选择 `runCode` / `runCodeSubagent` 作为任务启动模板。
+3. 然后像平时一样输入指令即可，Prompt 会帮你：
+	- 始终使用 `@dkplus #tool:dkplus.dkplushumanclarification/...` 这套工具；
+	- 让代理在结束前一定通过你的插件 UI 跟你确认/反馈。
 
 ---
 

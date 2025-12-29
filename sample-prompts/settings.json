@@ -1,3 +1,4 @@
+{
 "humanClarification.templates.contact": [
   {
     "name": "clarify",
@@ -72,3 +73,4 @@
     "template": "没有问题了，谢谢。结束会话吧，你这次不要再调用 `request_contact_user`, `request_user_clarification`, `request_user_feedback` 这几个工具。"
   }
 ]
+}

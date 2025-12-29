@@ -1,9 +1,20 @@
 ---
-description: "启动编码子代理"
+description: "启动编码子代理（dkplus 版）"
+tools:
+	[
+		"dkplus.dkplushumanclarification/requestUserClarification",
+		"dkplus.dkplushumanclarification/requestContactUser",
+		"dkplus.dkplushumanclarification/requestUserFeedback",
+		"dkplus.dkplushumanclarification/readReport",
+		"dkplus.dkplushumanclarification/writeReport",
+		"dkplus.dkplushumanclarification/dkplusAsk",
+		"runSubagent",
+		"search",
+	]
 agent: Principle
 ---
 
-# Orchestrator Task Instructions
+# Orchestrator Task Instructions (dkplus version)
 
 <task_definition>
 
@@ -11,6 +22,8 @@ agent: Principle
 
 <primary_objective>
 Launch a subagent named **编码代理** using the #tool:runSubagent tool, and have it establish contact with the user via the #tool:dkplus.dkplushumanclarification/requestContactUser tool.
+
+You MUST always use tools from the dkplus.dkplushumanclarification extension when dealing with clarification/contact/feedback/reporting/AI-ask workflows, and MUST NOT use tools with the same names from other extensions.
 </primary_objective>
 </task_definition>
 
