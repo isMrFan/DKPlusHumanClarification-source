@@ -1,5 +1,5 @@
 ---
-description: "启动编码子代理（dkplus 版）"
+description: "启动编码子代理（dkplus 强化版）"
 tools:
 	[
 		"dkplus.dkplushumanclarification/requestUserClarification",
@@ -14,16 +14,16 @@ tools:
 agent: Principle
 ---
 
-# Orchestrator Task Instructions (dkplus version)
+# Orchestrator Task Instructions (dkplus stronger version)
 
 <task_definition>
 
 ## Task Definition
 
 <primary_objective>
-Launch a subagent named **编码代理** using the #tool:runSubagent tool, and have it establish contact with the user via the #tool:dkplus.dkplushumanclarification/requestContactUser tool.
+Launch one implementation-focused subagent using the #tool:runSubagent tool.
 
-You MUST always use tools from the dkplus.dkplushumanclarification extension when dealing with clarification/contact/feedback/reporting/AI-ask workflows, and MUST NOT use tools with the same names from other extensions.
+The subagent must be instructed to complete the user's task end-to-end whenever feasible, and it must use dkplus tools for clarification/contact/feedback/reporting flows instead of same-name tools from other extensions.
 </primary_objective>
 </task_definition>
 
@@ -33,11 +33,41 @@ You MUST always use tools from the dkplus.dkplushumanclarification extension whe
 
 ## Additional Requirements
 
-### Subagent Continuous Communication
+### Subagent Prompt Requirements
 
-The subagent is **STRICTLY PROHIBITED** from ending the conversation prematurely. After completing each task, the subagent MUST continue communication with the user through the #tool:dkplus.dkplushumanclarification/requestContactUser tool to check if additional assistance is needed.
+The subagent prompt MUST explicitly require all of the following:
+
+- Start from a concrete local anchor.
+- Form one falsifiable local hypothesis before the first edit.
+- Make the smallest grounded change first.
+- Validate the touched slice before widening scope when a focused check exists.
+- Use #tool:dkplus.dkplushumanclarification/requestUserClarification when requirements are ambiguous.
+- Use #tool:dkplus.dkplushumanclarification/requestContactUser only when blocked or when a human decision is required.
+- Use #tool:dkplus.dkplushumanclarification/requestUserFeedback before the subagent ends.
+
+### Orchestrator Constraints
+
+The orchestrator should make the subagent prompt concrete. Include the user task, current constraints, and any known file or behavior anchor instead of vague meta-instructions.
+
+Do not launch multiple overlapping subagents unless the task clearly needs parallel research.
 
 ### Orchestrator Follow-up Communication
 
-After the subagent completes its work, the orchestrator MUST also use the #tool:dkplus.dkplushumanclarification/requestContactUser tool to communicate with the user, provide a summary, and solicit follow-up tasks or requirements.
+After the subagent returns, the orchestrator MUST provide a concise summary and continue the conversation with the user. If the subagent already collected final feedback, avoid redundant follow-up; otherwise use #tool:dkplus.dkplushumanclarification/requestUserFeedback before ending.
 </additional_requirements>
+
+---
+
+<recommended_subagent_prompt>
+
+## Recommended Subagent Prompt Skeleton
+
+Use a prompt with this shape when calling #tool:runSubagent:
+
+1. State the user goal in one sentence.
+2. Name the best concrete anchor if one is known.
+3. Require direct implementation, not broad planning.
+4. Require dkplus clarification/contact/feedback tools.
+5. Require a concise summary of edits, findings, and remaining risks.
+
+</recommended_subagent_prompt>

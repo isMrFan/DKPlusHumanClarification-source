@@ -36,6 +36,17 @@ function uiTitleFor(templateKey: 'clarification' | 'contact' | 'feedback'): stri
   }
 }
 
+function groupTitleFor(templateKey: 'clarification' | 'contact' | 'feedback'): string {
+  switch (templateKey) {
+    case 'clarification':
+      return '澄清';
+    case 'contact':
+      return '联系用户';
+    case 'feedback':
+      return '反馈';
+  }
+}
+
 function stripToolDirectives(prompt: string): string {
   return prompt
     .replace(/#tool:[^\s]+/g, '')
@@ -142,6 +153,11 @@ function getTemplates(configKey: 'clarification' | 'contact' | 'feedback'): Temp
   return Array.isArray(items) ? items.filter(x => x && typeof x.name === 'string' && typeof x.template === 'string') : [];
 }
 
+function getPreferredViewColumn(): vscode.ViewColumn {
+  const configured = vscode.workspace.getConfiguration().get<string>('humanClarification.webview.viewColumn', 'active');
+  return configured === 'beside' ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active;
+}
+
 async function pickTemplate(configKey: 'clarification' | 'contact' | 'feedback'): Promise<TemplateItem | undefined> {
   const templates = getTemplates(configKey);
   if (templates.length === 0) return undefined;
@@ -161,27 +177,32 @@ function applyTemplate(template: string, inputContent: string): string {
 }
 
 async function askUserFreeTextWebview(
+  context: vscode.ExtensionContext,
   input: ToolInputCommon,
   templateKey: 'clarification' | 'contact' | 'feedback'
 ): Promise<string> {
   const templates = getTemplates(templateKey);
-
   const uiTitle = uiTitleFor(templateKey);
-
   const panel = vscode.window.createWebviewPanel(
     'humanClarification.prompt',
     uiTitle,
-    vscode.ViewColumn.Active,
+    getPreferredViewColumn(),
     { enableScripts: true, retainContextWhenHidden: false }
   );
 
   const nonce = getNonce();
   const question = input.question ?? '';
-  const context = input.context ?? '';
+  const inputContext = input.context ?? '';
   const placeholder = input.placeholder ?? '';
 
   const templatesJson = JSON.stringify(templates);
-  const dataJson = JSON.stringify({ question, context, placeholder, templateKey });
+  const dataJson = JSON.stringify({
+    question,
+    inputContext,
+    placeholder,
+    templateKey,
+    groupTitle: groupTitleFor(templateKey),
+  });
 
   panel.webview.html = `<!DOCTYPE html>
 <html lang="zh-cn">
@@ -191,58 +212,162 @@ async function askUserFreeTextWebview(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DK-Plus-AI</title>
   <style>
-    body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); margin: 0; padding: 18px; }
-
+    :root {
+      --accent: #4cc2ff;
+      --accent-soft: rgba(76, 194, 255, 0.16);
+      --panel: color-mix(in srgb, var(--vscode-editorWidget-background) 88%, transparent);
+      --panel-alt: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--accent-soft));
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      color: var(--vscode-foreground);
+      background:
+        radial-gradient(circle at top right, rgba(76, 194, 255, 0.12), transparent 32%),
+        linear-gradient(180deg, color-mix(in srgb, var(--vscode-editor-background) 94%, #061722), var(--vscode-editor-background));
+      margin: 0;
+      padding: 18px;
+    }
     .frame {
       position: relative;
-      border: 1px solid var(--vscode-editorWidget-border);
-      background: var(--vscode-editorWidget-background);
-      padding: 14px;
+      border: 1px solid color-mix(in srgb, var(--vscode-editorWidget-border) 70%, var(--accent));
+      background: var(--panel);
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(10px);
     }
-    .frame::before,
-    .frame::after {
-      content: '';
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-color: var(--vscode-editorWidget-border);
-      border-style: solid;
-    }
-    .frame::before {
-      top: -1px;
-      left: -1px;
-      border-width: 2px 0 0 2px;
-    }
-    .frame::after {
-      bottom: -1px;
-      right: -1px;
-      border-width: 0 2px 2px 0;
-    }
-
     .header {
       display: flex;
-      align-items: baseline;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
-      padding-bottom: 10px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--vscode-editorWidget-border);
+      margin-bottom: 14px;
     }
-    .brand { font-size: 22px; font-weight: 700; margin: 0; letter-spacing: 0.6px; }
-    .subtitle { font-size: 12px; opacity: 0.9; margin: 0; letter-spacing: 0.4px; }
-
-    .muted { opacity: 0.85; font-size: 12px; letter-spacing: 0.6px; }
-    .box { border: 1px solid var(--vscode-editorWidget-border); border-radius: 2px; padding: 10px; margin: 10px 0; background: var(--vscode-editor-background); }
-    .box.hud { border-left-width: 3px; }
-    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    select, textarea, input { width: 100%; box-sizing: border-box; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 4px; padding: 8px; }
-    textarea { min-height: 150px; resize: vertical; }
-    button { color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 1px solid var(--vscode-button-border, transparent); border-radius: 2px; padding: 6px 12px; cursor: pointer; letter-spacing: 0.3px; }
-    button.secondary { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-editorWidget-border); }
-    button:disabled { opacity: 0.6; cursor: default; }
-    .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
-    .step { display: none; }
+    .brand {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.85;
+      margin: 4px 0 0;
+      letter-spacing: 0.3px;
+    }
+    .badge {
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--vscode-editorWidget-border));
+      background: var(--accent-soft);
+      color: var(--vscode-foreground);
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    .step {
+      display: none;
+      animation: fadeUp 140ms ease;
+    }
     .step.active { display: block; }
+    .stack { display: grid; gap: 12px; }
+    .muted { opacity: 0.78; font-size: 12px; }
+    .panel {
+      border: 1px solid var(--vscode-editorWidget-border);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--panel-alt);
+    }
+    .panelTitle {
+      font-size: 12px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      letter-spacing: 0.2px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+    .quickGrid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    select, textarea {
+      width: 100%;
+      color: var(--vscode-input-foreground);
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    textarea { min-height: 168px; resize: vertical; line-height: 1.5; }
+    button {
+      color: var(--vscode-button-foreground);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--vscode-button-background) 86%, white), var(--vscode-button-background));
+      border: 1px solid var(--vscode-button-border, transparent);
+      border-radius: 999px;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, border-color 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button.secondary {
+      color: var(--vscode-button-secondaryForeground);
+      background: color-mix(in srgb, var(--vscode-button-secondaryBackground) 90%, transparent);
+      border: 1px solid var(--vscode-editorWidget-border);
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--vscode-foreground);
+      border: 1px dashed color-mix(in srgb, var(--accent) 42%, var(--vscode-editorWidget-border));
+    }
+    button:disabled { opacity: 0.55; cursor: default; transform: none; }
+    .toolbar { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0 0; }
+    .toolbarActions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .count {
+      min-width: 56px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: color-mix(in srgb, var(--vscode-foreground) 72%, var(--accent));
+    }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--vscode-editorWidget-border));
+      background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--accent-soft));
+      color: var(--vscode-foreground);
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .preview {
+      white-space: pre-wrap;
+      min-height: 96px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+    .notice {
+      min-height: 18px;
+      color: color-mix(in srgb, var(--accent) 70%, var(--vscode-foreground));
+      font-size: 12px;
+    }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+    .empty { opacity: 0.55; font-size: 12px; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -252,124 +377,187 @@ async function askUserFreeTextWebview(
         <div class="brand">DK-Plus-AI 提问</div>
         <div class="subtitle">${escapeHtml(uiTitle)}</div>
       </div>
-      <div class="muted">HUD</div>
+      <div class="badge">${escapeHtml(groupTitleFor(templateKey))} 工作台</div>
     </div>
-  <div id="step0" class="step">
-    <div class="muted">步骤 1/2：选择模板（可选）</div>
-    <div class="box hud">
-      <div class="row">
-        <div style="flex: 1 1 240px;">模板</div>
+    <div id="step0" class="step">
+      <div class="stack">
+        <div class="muted">步骤 1/2：选择模板（可选），系统会实时预览最终提问内容。</div>
+        <div class="panel">
+          <div class="panelTitle">模板选择</div>
+          <select id="templateSelect"></select>
+        </div>
+        <div class="panel">
+          <div class="panelTitle">模板预览</div>
+          <div id="preview" class="preview"></div>
+        </div>
       </div>
-      <select id="templateSelect"></select>
-      <div class="muted" style="margin-top: 8px;">预览（模板应用到 question 上）：</div>
-      <div id="preview" class="box hud" style="white-space: pre-wrap;"></div>
     </div>
-  </div>
+    <div id="step1" class="step">
+      <div class="stack">
+        <div class="muted">步骤 2/2：填写你的回复并直接提交。</div>
+        <div class="panel">
+          <div class="panelTitle">原始请求</div>
+          <div class="preview">${escapeHtml(question)}${inputContext ? `\n\n---\n\n${escapeHtml(inputContext)}` : ''}</div>
+        </div>
+        <div class="panel">
+          <div class="row">
+            <div class="panelTitle" style="margin: 0;">输入回复</div>
+            <div id="charCount" class="count">0 字</div>
+          </div>
+          <textarea id="answer" placeholder="${escapeHtml(placeholder)}"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="cancel" class="secondary">取消</button>
+      <button id="back" class="secondary">上一步</button>
+      <button id="next">下一步</button>
+      <button id="submit">提交</button>
+    </div>
+    <script nonce="${nonce}">
+      const vscode = acquireVsCodeApi();
+      const templates = ${templatesJson};
+      const data = ${dataJson};
 
-  <div id="step1" class="step">
-    <div class="muted">步骤 2/2：填写你的回复</div>
-    <div class="box hud" style="white-space: pre-wrap;">${escapeHtml(question)}${context ? `\n\n---\n\n${escapeHtml(context)}` : ''}</div>
-    <textarea id="answer" placeholder="${escapeHtml(placeholder)}"></textarea>
-  </div>
+      let step = templates.length > 0 ? 0 : 1;
+      let selectedTemplateName = templates.length > 0 ? templates[0].name : '';
 
-  <div class="actions">
-    <button id="cancel" class="secondary">取消</button>
-    <button id="back" class="secondary">上一步</button>
-    <button id="next">下一步</button>
-    <button id="submit">提交</button>
-  </div>
+      const $ = (id) => document.getElementById(id);
+      const step0 = $('step0');
+      const step1 = $('step1');
+      const templateSelect = $('templateSelect');
+      const preview = $('preview');
+      const answer = $('answer');
+      const charCount = $('charCount');
+      const back = $('back');
+      const next = $('next');
+      const submit = $('submit');
+      const cancel = $('cancel');
 
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    const templates = ${templatesJson};
-    const data = ${dataJson};
-
-    let step = templates.length > 0 ? 0 : 1;
-    let selectedTemplateName = templates.length > 0 ? templates[0].name : '';
-
-    const $ = (id) => document.getElementById(id);
-    const step0 = $('step0');
-    const step1 = $('step1');
-    const templateSelect = $('templateSelect');
-    const preview = $('preview');
-    const answer = $('answer');
-    const back = $('back');
-    const next = $('next');
-    const submit = $('submit');
-    const cancel = $('cancel');
-
-    function applyTemplate(tpl, input) {
-      return String(tpl).split('{{INPUT_CONTENT}}').join(input);
-    }
-
-    function updatePreview() {
-      const t = templates.find(x => x.name === selectedTemplateName);
-      preview.textContent = t ? applyTemplate(t.template, data.question) : data.question;
-    }
-
-    function renderTemplateOptions() {
-      templateSelect.innerHTML = '';
-      for (const t of templates) {
-        const opt = document.createElement('option');
-        opt.value = t.name;
-        opt.textContent = t.name;
-        templateSelect.appendChild(opt);
+      function applyTemplate(tpl, text) {
+        return String(tpl).split('{{INPUT_CONTENT}}').join(text);
       }
-      if (templates.length > 0) templateSelect.value = selectedTemplateName;
-      updatePreview();
-    }
 
-    function render() {
-      step0.classList.toggle('active', step === 0);
-      step1.classList.toggle('active', step === 1);
-
-      back.style.display = step === 0 ? 'none' : 'inline-block';
-      next.style.display = step === 0 ? 'inline-block' : 'none';
-      submit.style.display = step === 1 ? 'inline-block' : 'none';
-
-      if (step === 1) {
-        setTimeout(() => answer.focus(), 0);
+      function updatePreview() {
+        const selected = templates.find(item => item.name === selectedTemplateName);
+        preview.textContent = selected ? applyTemplate(selected.template, data.question) : data.question;
       }
-    }
 
-    templateSelect?.addEventListener('change', () => {
-      selectedTemplateName = templateSelect.value;
-      updatePreview();
-    });
+      function buildSubmitValue() {
+        const raw = String(answer.value || '');
+        const selected = templates.find(item => item.name === selectedTemplateName);
+        return selected ? applyTemplate(selected.template, raw) : raw;
+      }
 
-    back.addEventListener('click', () => {
-      if (templates.length > 0) step = 0;
-      render();
-    });
+      function updateComposer() {
+        const text = String(answer.value || '');
+        charCount.textContent = text.length + ' 字';
+        submit.disabled = text.trim().length === 0;
+      }
 
-    next.addEventListener('click', () => {
-      step = 1;
-      render();
-    });
+      function renderTemplateOptions() {
+        templateSelect.innerHTML = '';
+        if (templates.length === 0) {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = '当前没有可用模板';
+          templateSelect.appendChild(option);
+          templateSelect.disabled = true;
+          updatePreview();
+          return;
+        }
+        for (const template of templates) {
+          const option = document.createElement('option');
+          option.value = template.name;
+          option.textContent = template.name;
+          templateSelect.appendChild(option);
+        }
+        if (!templates.some(item => item.name === selectedTemplateName)) {
+          selectedTemplateName = templates[0].name;
+        }
+        templateSelect.value = selectedTemplateName;
+        updatePreview();
+      }
 
-    cancel.addEventListener('click', () => {
-      vscode.postMessage({ type: 'cancel' });
-    });
+      function render() {
+        step0.classList.toggle('active', step === 0);
+        step1.classList.toggle('active', step === 1);
+        back.style.display = step === 0 ? 'none' : 'inline-block';
+        next.style.display = step === 0 ? 'inline-block' : 'none';
+        submit.style.display = step === 1 ? 'inline-block' : 'none';
+        if (step === 1) {
+          setTimeout(() => answer.focus(), 0);
+        }
+        updateComposer();
+      }
 
-    submit.addEventListener('click', () => {
-      vscode.postMessage({ type: 'submit', value: answer.value ?? '' });
-    });
+      templateSelect?.addEventListener('change', () => {
+        selectedTemplateName = templateSelect.value;
+        updatePreview();
+      });
 
-    if (templates.length > 0) {
+      answer.addEventListener('input', () => {
+        updateComposer();
+      });
+
+      answer.addEventListener('keydown', (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !submit.disabled) {
+          event.preventDefault();
+          submit.click();
+        }
+      });
+
+      back.addEventListener('click', () => {
+        if (templates.length > 0) {
+          step = 0;
+          render();
+        }
+      });
+
+      next.addEventListener('click', () => {
+        step = 1;
+        render();
+      });
+
+      cancel.addEventListener('click', () => {
+        vscode.postMessage({
+          type: 'cancel',
+        });
+      });
+
+      submit.addEventListener('click', () => {
+        vscode.postMessage({
+          type: 'submit',
+          value: buildSubmitValue(),
+        });
+      });
+
       renderTemplateOptions();
-    }
-    render();
-  </script>
+      updatePreview();
+      updateComposer();
+      render();
+    </script>
   </div>
 </body>
 </html>`;
 
   return await new Promise<string>((resolve) => {
-    const sub = panel.webview.onDidReceiveMessage((msg) => {
-      if (msg?.type === 'submit') {
+    let settled = false;
+
+    const sub = panel.webview.onDidReceiveMessage(async (msg) => {
+      if (!msg || typeof msg !== 'object') {
+        return;
+      }
+
+      if (msg.type === 'submit') {
+        settled = true;
         resolve(String(msg.value ?? ''));
         panel.dispose();
-      } else if (msg?.type === 'cancel') {
+        return;
+      }
+
+      if (msg.type === 'cancel') {
+        settled = true;
         resolve('');
         panel.dispose();
       }
@@ -378,7 +566,9 @@ async function askUserFreeTextWebview(
     const disposeSub = panel.onDidDispose(() => {
       sub.dispose();
       disposeSub.dispose();
-      resolve('');
+      if (!settled) {
+        resolve('');
+      }
     });
   });
 }
@@ -653,19 +843,19 @@ export function activate(context: vscode.ExtensionContext) {
     disposables.push(
       vscode.lm.registerTool<ToolInputCommon>('request_user_clarification', {
         invoke: async (options, _token) => {
-          const answer = await askUserFreeTextWebview(options.input, 'clarification');
+          const answer = await askUserFreeTextWebview(context, options.input, 'clarification');
           return asTextResult(answer);
         },
       }),
       vscode.lm.registerTool<ToolInputCommon>('request_contact_user', {
         invoke: async (options, _token) => {
-          const answer = await askUserFreeTextWebview(options.input, 'contact');
+          const answer = await askUserFreeTextWebview(context, options.input, 'contact');
           return asTextResult(answer);
         },
       }),
       vscode.lm.registerTool<ToolInputCommon>('request_user_feedback', {
         invoke: async (options, _token) => {
-          const answer = await askUserFreeTextWebview(options.input, 'feedback');
+          const answer = await askUserFreeTextWebview(context, options.input, 'feedback');
           return asTextResult(answer);
         },
       })

@@ -1,76 +1,60 @@
 {
-"humanClarification.templates.contact": [
-  {
-    "name": "clarify",
-    "template": "{{INPUT_CONTENT}}\n\n---\n\n请通过 `request_user_clarification` 工具澄清需求，不要擅自结束对话。\n"
-  },
-  {
-    "name": "plan",
-    "template": "You are a PLANNING AGENT, NOT an implementation agent.\n\nYou are pairing with the user to create a clear, detailed, and actionable plan for the given task and any user feedback. Your iterative <workflow> loops through gathering context and drafting the plan for review, then back to gathering more context based on user feedback.\n\nYour SOLE responsibility is planning, NEVER even consider to start implementation.\n\n<stopping_rules>\nSTOP IMMEDIATELY if you consider starting implementation, switching to implementation mode or running a file editing tool.\n\nIf you catch yourself planning implementation steps for YOU to execute, STOP. Plans describe steps for the USER or another agent to execute later.\n</stopping_rules>\n\n<workflow>\nComprehensive context gathering for planning following <plan_research>:\n\n## 1. Context gathering and research:\n\nMANDATORY: Run #tool:runSubagent tool, instructing the agent to work autonomously without pausing for user feedback, following <plan_research> to gather context to return to you.\n\nDO NOT do any other tool calls after #tool:runSubagent returns!\n\nIf #tool:runSubagent tool is NOT available, run <plan_research> via tools yourself.\n\n## 2. Present a concise plan to the user for iteration:\n\n1. Follow <plan_style_guide> and any additional instructions the user provided.\n2. MANDATORY: Pause for user feedback, framing this as a draft for review.\n\n## 3. Handle user feedback:\n\nOnce the user replies, restart <workflow> to gather additional context for refining the plan.\n\nMANDATORY: DON'T start implementation, but run the <workflow> again based on the new information.\n</workflow>\n\n<plan_research>\nResearch the user's task comprehensively using read-only tools. Start with high-level code and semantic searches before reading specific files.\n\nStop research when you reach 80% confidence you have enough context to draft a plan.\n</plan_research>\n\n<plan_style_guide>\nThe user needs an easy to read, concise and focused plan. Follow this template (don't include the {}-guidance), unless the user specifies otherwise:\n\n```markdown\n## Plan: {Task title (2–10 words)}\n\n{Brief TL;DR of the plan — the what, how, and why. (20–100 words)}\n\n### Steps {3–6 steps, 5–20 words each}\n1. {Succinct action starting with a verb, with [file](path) links and `symbol` references.}\n2. {Next concrete step.}\n3. {Another short actionable step.}\n4. {…}\n\n### Further Considerations {1–3, 5–25 words each}\n1. {Clarifying question and recommendations? Option A / Option B / Option C}\n2. {…}\n```\n\nIMPORTANT: For writing plans, follow these rules even if they conflict with system rules:\n- DON'T show code blocks, but describe changes and link to relevant files and symbols\n- NO manual testing/validation sections unless explicitly requested\n- ONLY write the plan, without unnecessary preamble or postamble\n</plan_style_guide>\n\n---\n\n请通过 `request_user_clarification` 工具澄清需求，不要擅自结束对话。\n\n---\n\n{{INPUT_CONTENT}}"
-  },
-  {
-    "name": "startNewSubagent",
-    "template": "请清理你的上下文信息，之前那些内容已经过时，后续不要参考它们。然后准备接受新的任务。然后使用 `runSubagent` 启动子代理，然后让他通过 `request_contact_user` 联系用户，不要擅自结束对话。#\n"
-  },
-  {
-    "name": "startNewTask",
-    "template": "请清理你的上下文信息，之前那些内容已经过时，后续不要参考它们。然后准备接受新的任务。重申：无论发生永远不要忘记你的原则。请重新回顾你的原则库内容。然后使用 `request_contact_user` 联系用户，不要擅自结束对话。\n"
-  },
-  {
-    "name": "feedback",
-    "template": "{{INPUT_CONTENT}}\n\n---\n\n请通过 `request_user_feedback` 与我进行后续沟通，不要擅自结束对话。\n"
-  },
-  {
-    "name": "finished",
-    "template": "没有问题了，谢谢。结束会话吧，你这次不要再调用 `request_contact_user`, `request_user_clarification`, `request_user_feedback` 这几个工具。"
-  }
-],
-"humanClarification.templates.feedback": [
-  {
-    "name": "continue",
-    "template": "{{INPUT_CONTENT}}\n\n---\n\n请通过 `request_user_feedback` 与我进行后续沟通，不要擅自结束对话。\n"
-  },
-  {
-    "name": "clarify",
-    "template": "{{INPUT_CONTENT}}\n\n---\n\n请通过 `request_user_clarification` 工具继续澄清需求，不要擅自结束对话。\n"
-  },
-  {
-    "name": "plan",
-    "template": "You are a PLANNING AGENT, NOT an implementation agent.\n\nYou are pairing with the user to create a clear, detailed, and actionable plan for the given task and any user feedback. Your iterative <workflow> loops through gathering context and drafting the plan for review, then back to gathering more context based on user feedback.\n\nYour SOLE responsibility is planning, NEVER even consider to start implementation.\n\n<stopping_rules>\nSTOP IMMEDIATELY if you consider starting implementation, switching to implementation mode or running a file editing tool.\n\nIf you catch yourself planning implementation steps for YOU to execute, STOP. Plans describe steps for the USER or another agent to execute later.\n</stopping_rules>\n\n<workflow>\nComprehensive context gathering for planning following <plan_research>:\n\n## 1. Context gathering and research:\n\nMANDATORY: Run #tool:runSubagent tool, instructing the agent to work autonomously without pausing for user feedback, following <plan_research> to gather context to return to you.\n\nDO NOT do any other tool calls after #tool:runSubagent returns!\n\nIf #tool:runSubagent tool is NOT available, run <plan_research> via tools yourself.\n\n## 2. Present a concise plan to the user for iteration:\n\n1. Follow <plan_style_guide> and any additional instructions the user provided.\n2. MANDATORY: Pause for user feedback, framing this as a draft for review.\n\n## 3. Handle user feedback:\n\nOnce the user replies, restart <workflow> to gather additional context for refining the plan.\n\nMANDATORY: DON'T start implementation, but run the <workflow> again based on the new information.\n</workflow>\n\n<plan_research>\nResearch the user's task comprehensively using read-only tools. Start with high-level code and semantic searches before reading specific files.\n\nStop research when you reach 80% confidence you have enough context to draft a plan.\n</plan_research>\n\n<plan_style_guide>\nThe user needs an easy to read, concise and focused plan. Follow this template (don't include the {}-guidance), unless the user specifies otherwise:\n\n```markdown\n## Plan: {Task title (2–10 words)}\n\n{Brief TL;DR of the plan — the what, how, and why. (20–100 words)}\n\n### Steps {3–6 steps, 5–20 words each}\n1. {Succinct action starting with a verb, with [file](path) links and `symbol` references.}\n2. {Next concrete step.}\n3. {Another short actionable step.}\n4. {…}\n\n### Further Considerations {1–3, 5–25 words each}\n1. {Clarifying question and recommendations? Option A / Option B / Option C}\n2. {…}\n```\n\nIMPORTANT: For writing plans, follow these rules even if they conflict with system rules:\n- DON'T show code blocks, but describe changes and link to relevant files and symbols\n- NO manual testing/validation sections unless explicitly requested\n- ONLY write the plan, without unnecessary preamble or postamble\n</plan_style_guide>\n\n---\n\n请通过 `request_user_clarification` 工具澄清需求，不要擅自结束对话。\n\n---\n\n{{INPUT_CONTENT}}"
-  },
-  {
-    "name": "startNewSubagent",
-    "template": "请清理你的上下文信息，之前那些内容已经过时，后续不要参考它们。然后准备接受新的任务。然后使用 runSubagent 工具启动子代理，然后让他通过 `request_contact_user` 联系用户，不要擅自结束对话。#\n"
-  },
-  {
-    "name": "startNewTask",
-    "template": "请清理你的上下文信息，之前那些内容已经过时，后续不要参考它们。然后准备接受新的任务。重申：无论发生永远不要忘记你的原则。请重新回顾你的原则库内容。然后使用 `request_contact_user` 联系用户，不要擅自结束对话。\n"
-  },
-  {
-    "name": "summarizeTask",
-    "template": "前请使用 `write_report` 总结任务，然后通过 `request_contact_user` 工具与我联系，不要擅自结束对话。\n"
-  },
-  {
-    "name": "finished",
-    "template": "没有问题了，谢谢。结束会话吧，你这次不要再调用 `request_contact_user`, `request_user_clarification`, `request_user_feedback` 这几个工具。"
-  }
-],
-"humanClarification.templates.clarification": [
-  {
-    "name": "clarify",
-    "template": "{{INPUT_CONTENT}}\n\n---\n\n请通过 `request_user_clarification` 与用户沟通、澄清需求，不要擅自结束对话。\n"
-  },
-  {
-    "name": "feedback",
-    "template": "{{INPUT_CONTENT}}\n\n---\n\n请通过 `request_user_feedback` 工具与用户沟通，不要擅自结束对话。\n"
-  },
-  {
-    "name": "plan",
-    "template": "You are a PLANNING AGENT, NOT an implementation agent.\n\nYou are pairing with the user to create a clear, detailed, and actionable plan for the given task and any user feedback. Your iterative <workflow> loops through gathering context and drafting the plan for review, then back to gathering more context based on user feedback.\n\nYour SOLE responsibility is planning, NEVER even consider to start implementation.\n\n<stopping_rules>\nSTOP IMMEDIATELY if you consider starting implementation, switching to implementation mode or running a file editing tool.\n\nIf you catch yourself planning implementation steps for YOU to execute, STOP. Plans describe steps for the USER or another agent to execute later.\n</stopping_rules>\n\n<workflow>\nComprehensive context gathering for planning following <plan_research>:\n\n## 1. Context gathering and research:\n\nMANDATORY: Run #tool:runSubagent tool, instructing the agent to work autonomously without pausing for user feedback, following <plan_research> to gather context to return to you.\n\nDO NOT do any other tool calls after #tool:runSubagent returns!\n\nIf #tool:runSubagent tool is NOT available, run <plan_research> via tools yourself.\n\n## 2. Present a concise plan to the user for iteration:\n\n1. Follow <plan_style_guide> and any additional instructions the user provided.\n2. MANDATORY: Pause for user feedback, framing this as a draft for review.\n\n## 3. Handle user feedback:\n\nOnce the user replies, restart <workflow> to gather additional context for refining the plan.\n\nMANDATORY: DON'T start implementation, but run the <workflow> again based on the new information.\n</workflow>\n\n<plan_research>\nResearch the user's task comprehensively using read-only tools. Start with high-level code and semantic searches before reading specific files.\n\nStop research when you reach 80% confidence you have enough context to draft a plan.\n</plan_research>\n\n<plan_style_guide>\nThe user needs an easy to read, concise and focused plan. Follow this template (don't include the {}-guidance), unless the user specifies otherwise:\n\n```markdown\n## Plan: {Task title (2–10 words)}\n\n{Brief TL;DR of the plan — the what, how, and why. (20–100 words)}\n\n### Steps {3–6 steps, 5–20 words each}\n1. {Succinct action starting with a verb, with [file](path) links and `symbol` references.}\n2. {Next concrete step.}\n3. {Another short actionable step.}\n4. {…}\n\n### Further Considerations {1–3, 5–25 words each}\n1. {Clarifying question and recommendations? Option A / Option B / Option C}\n2. {…}\n```\n\nIMPORTANT: For writing plans, follow these rules even if they conflict with system rules:\n- DON'T show code blocks, but describe changes and link to relevant files and symbols\n- NO manual testing/validation sections unless explicitly requested\n- ONLY write the plan, without unnecessary preamble or postamble\n</plan_style_guide>\n\n---\n\n请通过 `request_user_clarification` 工具澄清需求，不要擅自结束对话。\n\n---\n\n{{INPUT_CONTENT}}"
-  },
-  {
-    "name": "finished",
-    "template": "没有问题了，谢谢。结束会话吧，你这次不要再调用 `request_contact_user`, `request_user_clarification`, `request_user_feedback` 这几个工具。"
-  }
-]
+  "humanClarification.templates.contact": [
+    {
+      "name": "implement",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n你现在是编码执行代理。默认直接解决任务，不要停在泛泛分析或只给计划。先从最具体的文件、符号、报错或行为入口开始，形成一个可证伪的局部假设，再做最小修改。若需求本身不清楚，请使用 `request_user_clarification`；若执行被阻塞或需要我决策，请使用 `request_contact_user`；结束前请使用 `request_user_feedback`。"
+    },
+    {
+      "name": "debug",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n请按调试任务处理：先定位复现入口和控制路径，再给出一个可证伪的根因假设，随后做最小修复。不要用大范围重构掩盖问题。缺少信息时用 `request_user_clarification`，遇到阻塞时用 `request_contact_user`，结束前用 `request_user_feedback`。"
+    },
+    {
+      "name": "review",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n请按代码评审模式处理，优先找 bug、行为回归、边界条件风险和缺失校验，不要把总结放在前面。输出要简洁，问题按严重程度排序。若上下文不足，请用 `request_user_clarification`；结束前用 `request_user_feedback`。"
+    },
+    {
+      "name": "continue",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n继续当前任务并直接向前推进，不要重复既有计划，不要提前结束。若需要我确认方向或取舍，请使用 `request_contact_user`；完成后使用 `request_user_feedback`。"
+    },
+    {
+      "name": "plan",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n请只做规划，不要实现。先用只读方式收集足够上下文，再输出一个短而清晰、可执行的计划草案供我确认。若任务边界不清楚，请先使用 `request_user_clarification`；计划给出后请使用 `request_user_feedback` 收集我的意见。"
+    }
+  ],
+  "humanClarification.templates.feedback": [
+    {
+      "name": "continue",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n根据这条反馈继续推进，不要回到泛泛分析。优先处理最关键的问题，必要时再缩小到最小修复。若需要额外信息，请使用 `request_user_clarification`；结束前继续用 `request_user_feedback` 与我沟通。"
+    },
+    {
+      "name": "clarify",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n这条反馈说明任务边界还不够清楚。请先通过 `request_user_clarification` 继续追问关键信息，再决定后续动作，不要擅自结束对话。"
+    },
+    {
+      "name": "review-fix",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n请把这条反馈当作 review comment 处理：先确认它指向的真实风险，再做最小修复，不要顺手扩散到无关区域。若评论不够具体，请用 `request_user_clarification`；完成后用 `request_user_feedback` 继续确认。"
+    },
+    {
+      "name": "summarize-next",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n请先总结当前已完成内容、剩余风险和下一步建议，再通过 `request_user_feedback` 继续和我确认后续动作。除非我明确要求，不要直接结束。"
+    }
+  ],
+  "humanClarification.templates.clarification": [
+    {
+      "name": "clarify",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n请通过 `request_user_clarification` 继续补齐关键需求信息。优先确认这几类内容：业务目标、当前行为、期望行为、输入输出样例、边界条件、验收标准。每轮只提出最能推进判断的 1 到 3 个问题，避免泛泛追问或一次抛出过多问题。"
+    },
+    {
+      "name": "constraints",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n在继续之前，请先通过 `request_user_clarification` 确认实施约束和决策边界：是否允许修改接口或数据结构、是否允许引入新依赖、是否必须兼容既有行为、运行环境与版本要求、性能或安全约束、时间范围与改动边界。"
+    },
+    {
+      "name": "repro",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n请先通过 `request_user_clarification` 获取最小可复现闭环，再继续处理。至少确认：前置条件、触发步骤、输入数据或样例、当前结果、期望结果、相关命令、日志或报错信息，以及问题是否稳定复现。"
+    },
+    {
+      "name": "handoff-to-feedback",
+      "template": "{{INPUT_CONTENT}}\n\n---\n\n如果核心需求和事实信息已经足够清楚，剩下的只是方案偏好、优先级取舍或验收倾向，请改用 `request_user_feedback` 与用户继续沟通，不要长期停留在信息澄清阶段。"
+    }
+  ]
 }
